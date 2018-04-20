@@ -173,6 +173,7 @@ func (w *WebsocketHolder) Listen() {
 	go func() {
 		defer close(w.Done)
 		for {
+			w.WS.SetReadDeadline(time.Now().Add(time.Minute * 5))
 			_, message, err := w.WS.ReadMessage()
 			if err != nil {
 				util.Config.Log.Errorln(err)
