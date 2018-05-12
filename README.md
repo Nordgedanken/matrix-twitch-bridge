@@ -1,4 +1,6 @@
 # Matrix <--> Twitch Bridge
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FNordgedanken%2Fmatrix-twitch-bridge.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FNordgedanken%2Fmatrix-twitch-bridge?ref=badge_shield)
+
 
 This is an Twitch bridge for Matrix using the Application Services (AS) API.
 
@@ -75,3 +77,6 @@ To send a Whisper to someone on Twitch:
 ## Contributing
 
 Please see the [CONTRIBUTING](CONTRIBUTING.md) file for information on contributing.
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FNordgedanken%2Fmatrix-twitch-bridge.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FNordgedanken%2Fmatrix-twitch-bridge?ref=badge_large)
