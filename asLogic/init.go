@@ -11,8 +11,9 @@ import (
 	"github.com/fatih/color"
 	"github.com/gorilla/mux"
 	"log"
+	"maunium.net/go/gomatrix"
 	"maunium.net/go/maulogger"
-	"maunium.net/go/mautrix-appservice-go"
+	"maunium.net/go/mautrix-appservice"
 	"net/http"
 	"os"
 )
@@ -80,17 +81,16 @@ func prepareRun() error {
 	}
 
 	util.Config.Log.Infoln("Init...")
-	util.Config.Log.Close()
-	_, err = util.Config.Init(qHandler)
+	_, err = util.Config.Init()
 	if err != nil {
 		log.Fatalln(err)
 	}
+	util.Config.QueryHandler = qHandler
 	util.Config.Log.Infoln("Init Done...")
 
 	util.Config.Log.Infoln("Starting public server...")
 	r := mux.NewRouter()
 	r.HandleFunc("/callback", login.Callback).Methods(http.MethodGet)
-
 	go func() {
 		var err error
 		if len(util.TLSCert) == 0 || len(util.TLSKey) == 0 {
@@ -148,12 +148,12 @@ func Run() error {
 				util.Config.Log.Debugln("Got Event")
 				switch event.Type {
 				case "m.room.member":
-					if event.Content["membership"] == "join" {
+					if event.Content.Membership == "join" {
 
 						qHandler := queryHandler.QueryHandler()
 						for _, v := range qHandler.Aliases {
 							if v.ID == event.RoomID {
-								if event.SenderID != util.BotUser.MXClient.UserID {
+								if event.Sender != util.BotUser.MXClient.UserID {
 									err = joinEventHandler(event)
 									if err != nil {
 										util.Config.Log.Errorln(err)
@@ -168,7 +168,7 @@ func Run() error {
 					qHandler := queryHandler.QueryHandler()
 					for _, v := range qHandler.Aliases {
 						if v.ID == event.RoomID {
-							if event.SenderID != util.BotUser.MXClient.UserID {
+							if event.Sender != util.BotUser.MXClient.UserID {
 								err = useEvent(event)
 								if err != nil {
 									util.Config.Log.Errorln(err)
@@ -184,25 +184,25 @@ func Run() error {
 	}()
 
 	util.Config.Log.Infoln("Starting Appservice Server...")
-	util.Config.Listen()
+	util.Config.Start()
 
 	select {}
 }
 
-func joinEventHandler(event appservice.Event) error {
+func joinEventHandler(event *gomatrix.Event) error {
 	qHandler := queryHandler.QueryHandler()
-	mxUser := qHandler.RealUsers[event.SenderID]
-	asUser := qHandler.Users[event.SenderID]
+	mxUser := qHandler.RealUsers[event.Sender]
+	asUser := qHandler.Users[event.Sender]
 	util.Config.Log.Debugf("AS User: %+v\n", asUser)
-	if asUser != nil || util.BotUser.Mxid == event.SenderID {
+	if asUser != nil || util.BotUser.Mxid == event.Sender {
 		return nil
 	}
 	if mxUser == nil {
 		util.Config.Log.Debugln("Creating new User")
 
-		qHandler.RealUsers[event.SenderID] = &user.RealUser{}
-		mxUser := qHandler.RealUsers[event.SenderID]
-		mxUser.Mxid = event.SenderID
+		qHandler.RealUsers[event.Sender] = &user.RealUser{}
+		mxUser := qHandler.RealUsers[event.Sender]
+		mxUser.Mxid = event.Sender
 
 		util.Config.Log.Debugln("Let new User Login")
 		err := login.SendLoginURL(mxUser)
@@ -214,12 +214,12 @@ func joinEventHandler(event appservice.Event) error {
 	return nil
 }
 
-func useEvent(event appservice.Event) error {
+func useEvent(event *gomatrix.Event) error {
 	qHandler := queryHandler.QueryHandler()
-	mxUser := qHandler.RealUsers[event.SenderID]
-	asUser := qHandler.Users[event.SenderID]
+	mxUser := qHandler.RealUsers[event.Sender]
+	asUser := qHandler.Users[event.Sender]
 	util.Config.Log.Debugf("AS User: %+v\n", asUser)
-	if asUser != nil || util.BotUser.Mxid == event.SenderID || mxUser == nil {
+	if asUser != nil || util.BotUser.Mxid == event.Sender || mxUser == nil {
 		return nil
 	}
 
@@ -254,18 +254,18 @@ func useEvent(event appservice.Event) error {
 			}
 
 			util.Config.Log.Debugln("Check if text or other Media")
-			if event.Content["msgtype"] == "m.text" {
+			if event.Content.MsgType == "m.text" {
 				util.Config.Log.Debugln("Send message to twitch")
 
 				util.BotUser.Mux.Lock()
-				err := v.TwitchWS.Send(v.TwitchChannel, event.Content["body"].(string))
+				err := v.TwitchWS.Send(v.TwitchChannel, event.Content.Body)
 				util.BotUser.Mux.Unlock()
 				if err != nil {
 					return err
 				}
 			} else {
 				util.Config.Log.Debugln("Send message to bridge Room to tell user to use plain text")
-				resp, err := util.BotUser.MXClient.GetDisplayName(event.SenderID)
+				resp, err := util.BotUser.MXClient.GetDisplayName(event.Sender)
 				if err != nil {
 					return err
 				}

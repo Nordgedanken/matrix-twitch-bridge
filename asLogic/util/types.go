@@ -3,11 +3,11 @@ package util
 import (
 	"github.com/Nordgedanken/matrix-twitch-bridge/asLogic/db"
 	"github.com/Nordgedanken/matrix-twitch-bridge/asLogic/user"
-	"maunium.net/go/mautrix-appservice-go"
+	"maunium.net/go/mautrix-appservice"
 )
 
 // Config makes the appservice accessible everywhere in the Golang Code
-var Config *appservice.Config
+var Config *appservice.AppService
 
 // BotUser exposes the Bot User to the complete go code
 var BotUser *user.BotUser
